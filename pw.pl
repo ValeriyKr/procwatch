@@ -46,7 +46,7 @@ sub tasks {
 sub make_tree($$$);
 sub make_tree($$$) {
   my ($path, $ppid, $tasks, $proctree) = (
-    $_[0], $_[0] =~ m{.*/([^/]+)$}, $_[1], $_[2]);
+    $_[0], $_[0] =~ m{.*?([^/]+)$}, $_[1], $_[2]);
   for (sort keys %$tasks) {
     if ($tasks->{$_}->{ppid} == $ppid) {
       my $task = $tasks->{$_};
@@ -77,6 +77,7 @@ $mw->bind('<Configure>' => sub { # Resize hint
   $proctree->place(-width => $width, -height => $height);
 });
 
+my $called;
 sub refresh {
   my %tasks = %{tasks()};
 
@@ -84,10 +85,9 @@ sub refresh {
   die 'Init process not found' unless defined $init;
 
   $proctree->delete('all');
-  $proctree->add(0);
-  $proctree->add('0/1', -text => $init->format);
+  $proctree->add('1', -text => $init->format);
 
-  make_tree '0/1', \%tasks, $proctree;
+  make_tree '1', \%tasks, $proctree;
 
   for (sort keys %tasks) {
     warn "Unaccessed: " . Dumper $tasks{$_} unless $tasks{$_}->{accessed};
@@ -151,7 +151,7 @@ sub show_signal_menu($) {
   $sw->Button(
     -command => sub {
       my $statusfile = $sw->Toplevel(-title => "ProcWatch [$proc]: status");
-      my $statustext = $statusfile->Text;
+      my $statustext = $statusfile->Scrolled('Text', -scrollbars => 'se');
       open my $stfd, '<', "/proc/$proc/status";
       $statustext->Insert(join '', <$stfd>);
       close $stfd;

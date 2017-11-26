@@ -11,7 +11,7 @@ It is `Tk` in `cpan`, `perl-tk` package in Debian repository.
 
 To run it, just write
 ```
-$ ./main.pl
+$ ./pw.pl
 ```
 
 ## TODO
