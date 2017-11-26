@@ -16,4 +16,5 @@ $ ./main.pl
 
 ## TODO
 
-Make it done.
+* Make it done.
+* Check deadness of processes

@@ -59,6 +59,8 @@ sub make_tree($$$) {
 
 # main routine
 
+sub show_signal_menu($);
+
 my $mw = MainWindow->new;
 $mw->configure(
   -width  => 640,
@@ -68,6 +70,7 @@ $mw->configure(
 my $proctree = $mw->Scrolled('Tree',
   -scrollbars => 'se',
   -separator  => '/',
+  -command    => sub { show_signal_menu $_[0] =~ s{.*/}{}r },
 );
 $mw->bind('<Configure>' => sub { # Resize hint
   my ($width, $height) = $mw->geometry =~ m{([0-9]+)x([0-9]+)};
@@ -93,5 +96,70 @@ sub refresh {
   $proctree->after(1000, \&refresh);
 }
 $proctree->after(0, \&refresh);
+
+########################### ################### #############################
+############# ############### #################### ############## ###########
+
+sub show_signal_menu($) {
+  my $proc = $_[0];
+  my $sw = $mw->Toplevel;
+  $sw->configure(
+    -width  => 640,
+    -height => 480,
+    -title  => "ProcWatch [$proc]: send signal",
+  );
+  my $sigframe = $sw->Frame;
+
+  my %signals = reverse ( # Copy-paste signal(7), linux-specific
+    SIGHUP   =>   1, #    Term    Hangup detected on controlling terminal
+                     #            or death of controlling process
+    SIGINT   =>   2, #    Term    Interrupt from keyboard
+    SIGQUIT  =>   3, #    Core    Quit from keyboard
+    SIGILL   =>   4, #    Core    Illegal Instruction
+    SIGABRT  =>   6, #    Core    Abort signal from abort(3)
+    SIGFPE   =>   8, #    Core    Floating-point exception
+    SIGKILL  =>   9, #    Term    Kill signal
+    SIGSEGV  =>  11, #    Core    Invalid memory reference
+    SIGPIPE  =>  13, #    Term    Broken pipe: write to pipe with no
+                     #            readers; see pipe(7)
+    SIGALRM  =>  14, #    Term    Timer signal from alarm(2)
+    SIGTERM  =>  15, #    Term    Termination signal
+    SIGUSR1  =>  10, #    Term    User-defined signal 1
+    SIGUSR2  =>  12, #    Term    User-defined signal 2
+    SIGCHLD  =>  17, #    Ign     Child stopped or terminated
+    SIGCONT  =>  18, #    Cont    Continue if stopped
+    SIGSTOP  =>  19, #    Stop    Stop process
+    SIGTSTP  =>  20, #    Stop    Stop typed at terminal
+    SIGTTIN  =>  21, #    Stop    Terminal input for background process
+    SIGTTOU  =>  22, #    Stop    Terminal output for background process
+  );
+
+  $sw->Label(-text => "Send a signal to $proc:")->pack;
+  my $status;
+  my $prev_btn = '%0';
+  for my $s (sort {$a<=>$b} keys %signals) {
+    $prev_btn = $sigframe->Button(
+      -command => sub {
+        my $res = (kill $s, $proc) == 1 ? 'ok' : 'fail';
+        $status->configure(-text => "Operation status: $res");
+      },
+      -text    => "$signals{$s} <$s>",
+    )->form(-top => $prev_btn, -left => '%0', -right => '%100');
+  }
+  $sigframe->pack;
+  $status = $sw->Label->pack;
+  $sw->Button(
+    -command => sub {
+      my $statusfile = $sw->Toplevel(-title => "ProcWatch [$proc]: status");
+      my $statustext = $statusfile->Text;
+      open my $stfd, '<', "/proc/$proc/status";
+      $statustext->Insert(join '', <$stfd>);
+      close $stfd;
+      $statustext->configure(-state => 'disabled');
+      $statustext->pack;
+    },
+    -text    => 'Show status file',
+  )->pack;
+}
 
 MainLoop;
