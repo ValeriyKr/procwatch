@@ -4,10 +4,10 @@
 package proc;
 
 sub new {
-  my ($self, $pid, $tid, $ppid, $cmdline) = @_;
-  $ppid = $pid unless $tid == $pid;
+  my ($self, $pid, $lwp, $ppid, $cmdline) = @_;
+  $ppid = $pid unless $lwp == $pid;
   bless {pid     => $pid,
-         tid     => $tid,
+         lwp     => $lwp,
          ppid    => $ppid,
          cmdline => $cmdline,
          accessed => 0,
@@ -17,7 +17,7 @@ sub new {
 sub format {
   my $self = $_[0];
   $self->{accessed} = 1;
-  "pid: $self->{pid}, tid: $self->{tid} // $self->{cmdline}";
+  "pid: $self->{pid}, lwp: $self->{lwp} // $self->{cmdline}";
 }
 
 1;

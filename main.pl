@@ -16,7 +16,7 @@ sub tasks {
   for (</proc/[0-9]*/task/*>) {
     next unless defined (my ($pid) = m{/proc/([0-9]+)/});
 
-    # /proc/[pid]/task/[tid]/cmdline -- command line args, passed via exec(2)
+    # /proc/[pid]/task/[lwp]/cmdline -- command line args, passed via exec(2)
     open my $cmdfd, '<', "$_/cmdline";
     my $cmdline = join "\n", <$cmdfd>;
     close $cmdfd;
@@ -27,17 +27,17 @@ sub tasks {
     # kworkers? what?
     next unless defined $cmdline and length($cmdline) > 0;
 
-    # /proc/[pid]/task/[tid]/stat -- interesting stuff about a process (thread)
+    # /proc/[pid]/task/[lwp]/stat -- interesting stuff about a process (thread)
     open my $statfd, '<', "$_/stat";
     my $stat = join '', <$statfd>;
     close $statfd;
-    # tid (file) status ppid ...
-    my ($tid, $ppid) = $stat =~ m{([0-9]+) .*\) . ([0-9]+)};
+    # lwp (file) status ppid ...
+    my ($lwp, $ppid) = $stat =~ m{([0-9]+) .*\) . ([0-9]+)};
 
     # Expect everything when you're dealing with Linux
-    next unless defined $tid and defined $ppid;
+    next unless defined $lwp and defined $ppid;
 
-    $tasks->{$tid} = proc->new($pid, $tid, $ppid, $cmdline);
+    $tasks->{$lwp} = proc->new($pid, $lwp, $ppid, $cmdline);
   }
 
   $tasks;
@@ -50,7 +50,7 @@ sub make_tree($$$) {
   for (sort keys %$tasks) {
     if ($tasks->{$_}->{ppid} == $ppid) {
       my $task = $tasks->{$_};
-      my $taskpath = "$path/$task->{tid}";
+      my $taskpath = "$path/$task->{lwp}";
       $proctree->add($taskpath, -text => $task->format);
       make_tree $taskpath, $tasks, $proctree;
     }
