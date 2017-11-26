@@ -59,7 +59,7 @@ sub make_tree($$$) {
 
 # main routine
 
-sub show_signal_menu($);
+sub show_process_menu($);
 
 my $mw = MainWindow->new;
 $mw->configure(
@@ -70,7 +70,7 @@ $mw->configure(
 my $proctree = $mw->Scrolled('Tree',
   -scrollbars => 'se',
   -separator  => '/',
-  -command    => sub { show_signal_menu $_[0] =~ s{.*/}{}r },
+  -command    => sub { show_process_menu $_[0] =~ s{.*/}{}r },
 );
 $mw->bind('<Configure>' => sub { # Resize hint
   my ($width, $height) = $mw->geometry =~ m{([0-9]+)x([0-9]+)};
@@ -100,14 +100,9 @@ $proctree->after(0, \&refresh);
 ########################### ################### #############################
 ############# ############### #################### ############## ###########
 
-sub show_signal_menu($) {
-  my $proc = $_[0];
-  my $sw = $mw->Toplevel;
-  $sw->configure(
-    -width  => 640,
-    -height => 480,
-    -title  => "ProcWatch [$proc]: send signal",
-  );
+sub show_signal_menu($$) {
+  my ($mw, $proc) = @_;
+  my $sw = $mw->Toplevel(-title => "ProcWatch [$proc]: send signal");
   my $sigframe = $sw->Frame;
 
   my %signals = reverse ( # Copy-paste signal(7), linux-specific
@@ -148,18 +143,30 @@ sub show_signal_menu($) {
   }
   $sigframe->pack;
   $status = $sw->Label->pack;
-  $sw->Button(
+}
+
+sub show_process_menu($) {
+  my ($proc, $prev) = ($_[0], '%0');
+  my $pw = $mw->Toplevel(-title => "ProcWatch [$proc]");
+  $prev = $pw->Label(-text => "Control $proc:")->form(
+    -left => '%0', -right => '%100', -top => $prev,);
+  $prev = $pw->Button(
+    -command => sub { show_signal_menu $pw, $proc },
+    -text    => 'Signalize',
+  )->form(-left => '%0', -right => '%100', -top => $prev,);
+  $prev = $pw->Button(
     -command => sub {
-      my $statusfile = $sw->Toplevel(-title => "ProcWatch [$proc]: status");
-      my $statustext = $statusfile->Scrolled('Text', -scrollbars => 'se');
       open my $stfd, '<', "/proc/$proc/status" or return;
-      $statustext->Insert(join '', <$stfd>);
+      my $st = join '', <$stfd>;
       close $stfd;
+      my $statusfile = $pw->Toplevel(-title => "ProcWatch [$proc]: status");
+      my $statustext = $statusfile->Scrolled('Text', -scrollbars => 'se');
+      $statustext->Insert($st);
       $statustext->configure(-state => 'disabled');
       $statustext->pack;
     },
     -text    => 'Show status file',
-  )->pack;
+  )->form(-left => '%0', -right => '%100', -top => $prev);
 }
 
 MainLoop;
