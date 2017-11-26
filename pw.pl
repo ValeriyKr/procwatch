@@ -17,7 +17,7 @@ sub tasks {
     next unless defined (my ($pid) = m{/proc/([0-9]+)/});
 
     # /proc/[pid]/task/[lwp]/cmdline -- command line args, passed via exec(2)
-    open my $cmdfd, '<', "$_/cmdline";
+    open my $cmdfd, '<', "$_/cmdline" or next;
     my $cmdline = join "\n", <$cmdfd>;
     close $cmdfd;
     $cmdline =~ s/[\n\x00]/ /g; # Yes, there are zeros here
@@ -28,7 +28,7 @@ sub tasks {
     next unless defined $cmdline and length($cmdline) > 0;
 
     # /proc/[pid]/task/[lwp]/stat -- interesting stuff about a process (thread)
-    open my $statfd, '<', "$_/stat";
+    open my $statfd, '<', "$_/stat" or next;
     my $stat = join '', <$statfd>;
     close $statfd;
     # lwp (file) status ppid ...
@@ -152,7 +152,7 @@ sub show_signal_menu($) {
     -command => sub {
       my $statusfile = $sw->Toplevel(-title => "ProcWatch [$proc]: status");
       my $statustext = $statusfile->Scrolled('Text', -scrollbars => 'se');
-      open my $stfd, '<', "/proc/$proc/status";
+      open my $stfd, '<', "/proc/$proc/status" or return;
       $statustext->Insert(join '', <$stfd>);
       close $stfd;
       $statustext->configure(-state => 'disabled');

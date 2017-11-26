@@ -17,4 +17,3 @@ $ ./pw.pl
 ## TODO
 
 * Make it done.
-* Check deadness of processes
